@@ -26,8 +26,11 @@ services:
     volumes:
       - static_volume:/home/app/web/project/static
       - media_volume:/home/app/web/project/media
+      - /etc/ssl/fedor-solovyev.ru.crt:/etc/ssl/fedor-solovyev.ru.crt
+      - /etc/ssl/fedor-solovyev.ru.key:/etc/ssl/fedor-solovyev.ru.key
     ports:
-      - 1337:80
+      - 80:80
+      - 443:443
     depends_on:
       - web
 

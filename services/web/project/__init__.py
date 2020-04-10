@@ -1,37 +1,23 @@
+# -*- coding: utf-8 -*-
 import requests
 import os
 
 from werkzeug.utils import secure_filename
 from flask import (
-    Flask,
     jsonify,
     send_from_directory,
     request,
     redirect,
     url_for
 )
-from flask_sqlalchemy import SQLAlchemy
+
+from .common import app, db
+from .models import Client, Message
 
 
 FB_API_URL = 'https://graph.facebook.com/v2.6/me/messages'
 PAGE_ACCESS_TOKEN = 'EAAraUOWW90oBABRZAGHM6X1jWIDVSQZBt7a7C6MPCuh42zk93l0LmvtMGGO0msOPrmerlANAPt0BQUZApFiiHxZCOV0ta83sFJ8J0TchhJq04nC60WrwZAFjedZB7Smj8Vo0z9Km5BTsqwYGEl3FYKYMPfkT1f0zg97e9Q9HKo4QZDZD'
 VERIFY_TOKEN = 'verify-pipe-maria-bot'
-
-
-app = Flask(__name__)
-app.config.from_object("project.config.Config")
-db = SQLAlchemy(app)
-
-
-class User(db.Model):
-    __tablename__ = "users"
-
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(128), unique=True, nullable=False)
-    active = db.Column(db.Boolean(), default=True, nullable=False)
-
-    def __init__(self, email):
-        self.email = email
 
 
 @app.route("/")
@@ -55,6 +41,10 @@ def handle():
         if is_user_message(x):
             text = x['message']['text']
             sender_id = x['sender']['id']
+            clients = db.session.query(Client).filter(Client.id == sender_id).all()
+            if len(clients) == 0:
+                db.session.add(Client(id=sender_id))
+                db.session.commit()
             respond(sender_id, text)
     return 'ok'
 
@@ -62,6 +52,19 @@ def handle():
 def send_message(recipient_id, text):
     '''Send a response to Facebook'''
     payload = {
+        'messaging_type': 'RESPONSE',
+        'message': {
+            'text': text
+        },
+        'recipient': {
+            'id': recipient_id
+        },
+        'notification_type': 'regular'
+    }
+
+    payload2 = {
+        'messaging_type': 'MESSAGE_TAG',
+        'tag': 'ACCOUNT_UPDATE',
         'message': {
             'text': text
         },
@@ -79,6 +82,12 @@ def send_message(recipient_id, text):
         FB_API_URL,
         params=auth,
         json=payload
+    )
+
+    response = requests.post(
+        FB_API_URL,
+        params=auth,
+        json=payload2
     )
 
     return response.json()

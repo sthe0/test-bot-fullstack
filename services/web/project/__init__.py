@@ -45,6 +45,8 @@ def handle():
             if len(clients) == 0:
                 db.session.add(Client(id=sender_id))
                 db.session.commit()
+            for client in clients:
+                text += ' client id:' + client.id
             respond(sender_id, text)
     return 'ok'
 

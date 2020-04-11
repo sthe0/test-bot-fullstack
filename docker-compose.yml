@@ -2,24 +2,38 @@ version: '3.7'
 
 services:
   web:
-    build: ./services/web
-    command: python manage.py run -h 0.0.0.0
+    build:
+      context: ./services/web
+      dockerfile: Dockerfile
+    command: gunicorn --bind 0.0.0.0:5000 manage:app
     volumes:
-      - ./services/web/:/usr/src/app/
-    ports:
-      - 5000:5000
+      - static_volume:/home/app/web/project/static
+      - media_volume:/home/app/web/project/media
+    expose:
+      - 5000
     env_file:
-      - ./.env.dev
+      - ./.env
     depends_on:
       - db
   db:
     image: postgres:12-alpine
     volumes:
-      - postgres_data:/var/lib/postgresql/data/
-    environment:
-      - POSTGRES_USER=hello_flask
-      - POSTGRES_PASSWORD=hello_flask
-      - POSTGRES_DB=hello_flask_dev
+      - ./db:/var/lib/postgresql/data
+    env_file:
+      - ./.env.db
+  nginx:
+    build: ./services/nginx
+    volumes:
+      - static_volume:/home/app/web/project/static
+      - media_volume:/home/app/web/project/media
+      - /etc/ssl/fedor-solovyev.ru.crt:/etc/ssl/fedor-solovyev.ru.crt
+      - /etc/ssl/fedor-solovyev.ru.key:/etc/ssl/fedor-solovyev.ru.key
+    ports:
+      - 80:80
+      - 443:443
+    depends_on:
+      - web
 
 volumes:
-  postgres_data:
+  static_volume:
+  media_volume:

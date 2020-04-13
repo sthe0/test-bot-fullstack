@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import requests
 import os
 
 from werkzeug.utils import secure_filename
@@ -11,13 +10,8 @@ from flask import (
     url_for
 )
 
-from .common import app, db
+from .common import app, db, fb_api
 from .models import Client, Message
-
-
-FB_API_URL = 'https://graph.facebook.com/v2.6/me/messages'
-PAGE_ACCESS_TOKEN = 'EAAraUOWW90oBABRZAGHM6X1jWIDVSQZBt7a7C6MPCuh42zk93l0LmvtMGGO0msOPrmerlANAPt0BQUZApFiiHxZCOV0ta83sFJ8J0TchhJq04nC60WrwZAFjedZB7Smj8Vo0z9Km5BTsqwYGEl3FYKYMPfkT1f0zg97e9Q9HKo4QZDZD'
-VERIFY_TOKEN = 'verify-pipe-maria-bot'
 
 
 @app.route("/")
@@ -27,10 +21,7 @@ def hello_world():
 
 @app.route('/bot/facebook', methods=['GET'])
 def verify():
-    if request.args.get('hub.verify_token') == VERIFY_TOKEN:
-        return request.args.get('hub.challenge')
-    else:
-        return request.args
+    return fb_api.verify(request.args)
 
 
 @app.route('/bot/facebook', methods=['POST'])
@@ -38,75 +29,33 @@ def handle():
     payload = request.get_json()
     event = payload['entry'][0]['messaging']
     for x in event:
-        if is_user_message(x):
-            text = x['message']['text']
+        if fb_api.is_user_message(x):
+            incoming_text = x['message']['text']
             sender_id = x['sender']['id']
-            clients = db.session.query(Client).filter(Client.id == sender_id).all()
-            if len(clients) == 0:
-                db.session.add(Client(id=sender_id))
-                db.session.commit()
-            for client in clients:
-                text += ' client id:' + client.id
-            respond(sender_id, text)
+
+            client = get_client(sender_id)
+            response_text = process_message(client, incoming_text)
+            fb_api.send_message(sender_id, response_text)
+    db.session.commit()
     return 'ok'
 
 
-def send_message(recipient_id, text):
-    '''Send a response to Facebook'''
-    payload = {
-        'messaging_type': 'RESPONSE',
-        'message': {
-            'text': text
-        },
-        'recipient': {
-            'id': recipient_id
-        },
-        'notification_type': 'regular'
-    }
-
-    payload2 = {
-        'messaging_type': 'MESSAGE_TAG',
-        'tag': 'ACCOUNT_UPDATE',
-        'message': {
-            'text': text
-        },
-        'recipient': {
-            'id': recipient_id
-        },
-        'notification_type': 'regular'
-    }
-
-    auth = {
-        'access_token': PAGE_ACCESS_TOKEN
-    }
-
-    response = requests.post(
-        FB_API_URL,
-        params=auth,
-        json=payload
-    )
-
-    response = requests.post(
-        FB_API_URL,
-        params=auth,
-        json=payload2
-    )
-
-    return response.json()
+def process_message(client, incoming_text):
+    texts = []
+    for message in client.messages[:4]:
+        author = 'Me'
+        if message.from_client:
+            author = 'You'
+        texts.append('{0} [{1}]: {2}'.format(author, message.date.strftime('%d.%m.%Y %H:%M:%S'), message.text))
+    client.messages.append(Message(client_id=client.id, text=incoming_text, from_client=True))
+    response_text = 'Buy an elephant!'
+    client.messages.append(Message(client_id=client.id, text=response_text, from_client=False))
+    return response_text + '\n' + 'History: ' + '\n'.join(texts)
 
 
-def get_bot_response(message):
-    return 'echo: {}'.format(message)
-
-
-def respond(sender, message):
-    response = get_bot_response(message)
-    send_message(sender, response)
-
-
-def is_user_message(message):
-    return (
-        message.get('message') and
-        message['message'].get('text') and
-        not message['message'].get('is_echo')
-    )
+def get_client(id):
+    client = db.session.query(Client).get(id)
+    if client is None:
+        client = Client(**fb_api.get_client_info(id))
+        db.session.add(client)
+    return client

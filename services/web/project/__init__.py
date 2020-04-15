@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
 
-from werkzeug.utils import secure_filename
 from flask import (
     jsonify,
     send_from_directory,
@@ -9,14 +8,48 @@ from flask import (
     redirect,
     url_for
 )
+from flask_security import (
+    Security,
+    SQLAlchemySessionUserDatastore,
+    login_required
+)
 
 from .common import app, db, fb_api
-from .models import Client, Message
+from .models import Client, Message, User, Role
 
 
-@app.route("/")
-def hello_world():
-    return jsonify(hello="world")
+user_datastore = SQLAlchemySessionUserDatastore(db.session, User, Role)
+security = Security(app, user_datastore)
+
+
+@app.before_first_request
+def create_user():
+    db.drop_all()
+    db.create_all()
+    user_datastore.create_user(email='admin@fedor-solovyev.ru', password='P@ssw0rd@')
+    db.session.commit()
+
+
+@app.route('/test')
+def test():
+    return jsonify(hello='test')
+
+
+@app.route('/')
+def home():
+    return jsonify(hello='home')
+
+
+@app.route('/other')
+@login_required
+def other():
+    return jsonify(hello='other')
+
+
+# @app.route('/login')
+# def login():
+#     form = LoginForm()
+#     return render_template('login.html', title='Sign In', form=form)
 
 
 @app.route('/bot/facebook', methods=['GET'])

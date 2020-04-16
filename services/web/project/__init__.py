@@ -11,9 +11,9 @@ app.register_blueprint(facebook)
 
 @app.before_first_request
 def create_user():
-    db.drop_all()
-    db.create_all()
-    user_datastore.create_user(email='admin@fedor-solovyev.ru', password='P@ssw0rd@')
+    # db.drop_all()
+    # db.create_all()
+    # user_datastore.create_user(email='admin@fedor-solovyev.ru', password='P@ssw0rd@')
     db.session.commit()
 
 

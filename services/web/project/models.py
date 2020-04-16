@@ -44,25 +44,17 @@ class Client(db.Model):
     gender = db.Column(db.String(32))
     messages = db.relationship('Message', back_populates='client', order_by="desc(Message.date)")
 
-    def __init__(
-        self,
-        id,
-        name=None,
-        first_name=None,
-        last_name=None,
-        profile_pic=None,
-        locale=None,
-        timezone=None,
-        gender=None
-    ):
-        self.id = id
-        self.name = name
-        self.first_name = first_name
-        self.last_name = last_name
-        self.profile_pic = profile_pic
-        self.locale = locale
-        self.timezone = timezone
-        self.gender = gender
+    def to_json(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'first_name': self.first_name,
+            'last_name': self.last_name,
+            # 'profile_pic': self.profile_pic,
+            'locale': self.locale,
+            'timezone': self.timezone,
+            'gender': self.gender
+        }
 
 
 class Message(db.Model):
@@ -76,15 +68,10 @@ class Message(db.Model):
     client_id = db.Column(db.String(256), db.ForeignKey('clients.id'))
     client = db.relationship('Client', back_populates='messages')
 
-    def __init__(
-        self,
-        client_id,
-        text,
-        from_client,
-        date=None
-    ):
-        self.client_id = client_id
-        self.text = text
-        self.from_client = from_client
-        if date is not None:
-            self.date = date
+    def to_json(self):
+        return {
+            'id': self.id,
+            'text': self.text,
+            'from_client': self.from_client,
+            'date': self.date.isoformat()
+        }

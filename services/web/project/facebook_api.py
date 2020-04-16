@@ -19,7 +19,7 @@ class FacebookApi:
         else:
             return query_args
 
-    def send_message(self, recipient_id, text):
+    def send_message(self, client_id, text):
         return requests.post(
             self.FB_API_URL + '/me/messages',
             params={
@@ -31,13 +31,13 @@ class FacebookApi:
                     'text': text
                 },
                 'recipient': {
-                    'id': recipient_id
+                    'id': client_id
                 },
                 'notification_type': 'regular'
             }
         ).json()
 
-    def send_tag_message(self, recipient_id, text, tag='ACCOUNT_UPDATE'):
+    def send_tag_message(self, client_id, text, tag='ACCOUNT_UPDATE'):
         return requests.post(
             self.FB_API_URL + '/me/messages',
             params={
@@ -50,7 +50,7 @@ class FacebookApi:
                     'text': text
                 },
                 'recipient': {
-                    'id': recipient_id
+                    'id': client_id
                 },
                 'notification_type': 'regular'
             }

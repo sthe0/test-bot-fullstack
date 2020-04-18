@@ -19,13 +19,26 @@ class FacebookApi:
         else:
             return query_args
 
-    def send_message(self, client_id, text):
+    def post(self, api_suffix, json):
         return requests.post(
-            self.FB_API_URL + '/me/messages',
+            self.FB_API_URL + api_suffix,
             params={
                 'access_token': self._page_access_token
             },
-            json={
+            json=json
+        )
+
+    def get(self, api_suffix, params):
+        params.update({'access_token': self._page_access_token})
+        return requests.get(
+            self.FB_API_URL + api_suffix,
+            params=params
+        )
+
+    def send_message(self, client_id, text):
+        return self.post(
+            '/me/messages',
+            {
                 'messaging_type': 'RESPONSE',
                 'message': {
                     'text': text
@@ -38,12 +51,9 @@ class FacebookApi:
         ).json()
 
     def send_tag_message(self, client_id, text, tag='ACCOUNT_UPDATE'):
-        return requests.post(
-            self.FB_API_URL + '/me/messages',
-            params={
-                'access_token': self._page_access_token
-            },
-            json={
+        return self.post(
+            '/me/messages',
+            {
                 'messaging_type': 'MESSAGE_TAG',
                 'tag': tag,
                 'message': {
@@ -74,12 +84,9 @@ class FacebookApi:
             'timezone',
             'gender'
         ]
-        response = requests.get(
-            self.FB_API_URL + '/{id}'.format(id=id),
-            params={
-                'fields': ','.join(fields),
-                'access_token': self._page_access_token
-            }
+        response = self.get(
+            api_suffix='/{id}'.format(id=id),
+            params={'fields': ','.join(fields)}
         ).json()
         result = {field: response.get(field) for field in fields}
         result['id'] = id

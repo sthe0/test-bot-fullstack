@@ -17,6 +17,13 @@ def create_user():
     db.session.commit()
 
 
+@app.route('/say_again')
+def say_again():
+    return jsonify({
+        'you said:': request.args.get('text')
+    })
+
+
 @app.route('/test')
 def test():
     return jsonify(hello='test')

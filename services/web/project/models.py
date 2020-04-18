@@ -42,6 +42,7 @@ class Client(db.Model):
     locale = db.Column(db.String(8))
     timezone = db.Column(db.Integer())
     gender = db.Column(db.String(32))
+    session = db.Column(db.Text())
     messages = db.relationship('Message', back_populates='client', order_by="desc(Message.date)")
 
     def to_json(self):

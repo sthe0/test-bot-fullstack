@@ -61,7 +61,7 @@ class Client(db.Model):
 class Message(db.Model):
     __tablename__ = 'messages'
 
-    id = db.Column(db.String(128), db.Sequence('message_id_seq'), primary_key=True)
+    id = db.Column(db.String(128), primary_key=True)
     text = db.Column(db.String(1000))
     from_client = db.Column(db.Boolean())
     date = db.Column(db.DateTime(), default=datetime.utcnow)
